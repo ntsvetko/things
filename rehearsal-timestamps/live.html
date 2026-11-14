@@ -212,6 +212,7 @@
       t.textContent = clockStr(e.t);
       var inp = document.createElement("input");
       inp.type = "text"; inp.value = e.text; inp.placeholder = "What happened?";
+      inp.setAttribute("autocorrect", "off"); inp.setAttribute("autocomplete", "off"); inp.spellcheck = false;
       inp.setAttribute("aria-label", "What happened at " + clockStr(e.t));
       inp.addEventListener("input", function () { e.text = inp.value; save(); renderResult(); });
       inp.addEventListener("keydown", function (ev) { if (ev.key === "Enter") inp.blur(); });
