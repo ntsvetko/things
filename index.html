@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rehearsal Timestamps</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Literata:opsz,wght@7..72,600&display=swap">
+<style>
+  /* Layout: one narrow column, three numbered steps top to bottom, big touch targets. */
+  :root {
+    --bg: #f3f6f7;
+    --card: #ffffff;
+    --fg: #1b2a30;
+    --muted: #4f6168;
+    --line: #c9d5d9;
+    --accent: #1d5c69;
+    --accent-fg: #ffffff;
+    --warn-bg: #fff3d6;
+    --warn-fg: #6b4a00;
+    --ok: #2f7a45;
+    --font-body: "Atkinson Hyperlegible", Verdana, "Segoe UI", sans-serif;
+    --font-head: "Literata", Georgia, serif;
+    --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111b1f; --card: #192529; --fg: #e8f0f2; --muted: #a6b8be; --line: #33464d;
+      --accent: #7cc4d2; --accent-fg: #0d1a1e; --warn-bg: #3a2f12; --warn-fg: #f5d58a; --ok: #7fd197;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #111b1f; --card: #192529; --fg: #e8f0f2; --muted: #a6b8be; --line: #33464d;
+    --accent: #7cc4d2; --accent-fg: #0d1a1e; --warn-bg: #3a2f12; --warn-fg: #f5d58a; --ok: #7fd197;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: var(--font-body); font-size: 19px; line-height: 1.5;
+  }
+  .wrap {
+    max-width: 680px; margin: 0 auto;
+    padding-block: 32px 64px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: flex; flex-direction: column; gap: 24px;
+  }
+  h1 { font-family: var(--font-head); font-weight: 600; font-size: 2rem; line-height: 1.15; margin: 0; text-wrap: balance; }
+  .intro { margin: 8px 0 0; color: var(--muted); }
+  .step {
+    background: var(--card); border: 2px solid var(--line); border-radius: 14px;
+    padding: 20px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .step-label { font-size: 0.85rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+  .step h2 { font-family: var(--font-head); font-weight: 600; font-size: 1.35rem; margin: 0; }
+  .hint { margin: 0; color: var(--muted); font-size: 0.95rem; }
+  input, textarea {
+    font: inherit; color: var(--fg); background: var(--bg);
+    border: 2px solid var(--line); border-radius: 10px; padding: 12px 14px; width: 100%;
+  }
+  input#start { font-size: 1.6rem; max-width: 220px; font-variant-numeric: tabular-nums; }
+  textarea { min-height: 220px; resize: vertical; font-family: var(--font-mono); font-size: 1rem; }
+  input:focus, textarea:focus, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .result {
+    font-family: var(--font-mono); font-size: 1rem; white-space: pre-wrap; word-break: break-word;
+    background: var(--bg); border: 2px solid var(--line); border-radius: 10px;
+    padding: 14px; margin: 0; min-height: 120px; font-variant-numeric: tabular-nums;
+    user-select: all;
+  }
+  .result.empty { color: var(--muted); font-family: var(--font-body); }
+  .buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+  button {
+    font: inherit; font-weight: 700; cursor: pointer; border-radius: 10px; padding: 14px 22px;
+    border: 2px solid var(--accent);
+  }
+  .primary { background: var(--accent); color: var(--accent-fg); font-size: 1.15rem; flex: 1 1 220px; }
+  .secondary { background: transparent; color: var(--accent); }
+  .status { min-height: 1.5em; margin: 0; font-weight: 700; color: var(--ok); }
+  .notes { display: flex; flex-direction: column; gap: 8px; }
+  .note { background: var(--warn-bg); color: var(--warn-fg); border-radius: 10px; padding: 10px 14px; margin: 0; font-size: 0.95rem; }
+  details { color: var(--muted); font-size: 0.95rem; }
+  summary { cursor: pointer; font-weight: 700; color: var(--accent); }
+  details ul { padding-left: 1.2em; margin: 8px 0 0; }
+  code { font-family: var(--font-mono); font-size: 0.95em; }
+  @media (max-width: 480px) { body { font-size: 18px; } h1 { font-size: 1.7rem; } .step { padding: 16px; } }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Rehearsal Timestamps</h1>
+    <p class="intro">Turn the clock times in your rehearsal notes into YouTube times. Fill in steps 1 and 2, then press the big button in step 3.</p>
+  </header>
+
+  <section class="step">
+    <span class="step-label">Step 1</span>
+    <h2><label for="start">What time did the recording start?</label></h2>
+    <p class="hint">Use the time on the clock when the video began, for example <code>19:04</code> or <code>7:04</code>.</p>
+    <input id="start" type="text" inputmode="numeric" autocomplete="off" placeholder="19:04">
+  </section>
+
+  <section class="step">
+    <span class="step-label">Step 2</span>
+    <h2><label for="notes">Paste your notes</label></h2>
+    <p class="hint">One item per line, each starting with a clock time.</p>
+    <textarea id="notes" spellcheck="false"></textarea>
+  </section>
+
+  <section class="step">
+    <span class="step-label">Step 3</span>
+    <h2>Copy the YouTube times</h2>
+    <pre class="result" id="result" aria-live="polite"></pre>
+    <div class="notes" id="warnings"></div>
+    <div class="buttons">
+      <button class="primary" id="copy" type="button">Copy</button>
+      <button class="secondary" id="clear" type="button">Start over</button>
+    </div>
+    <p class="status" id="status" role="status"></p>
+  </section>
+
+  <details>
+    <summary>What can I type?</summary>
+    <ul>
+      <li>Times like <code>19:05</code>, <code>7:05</code>, <code>7:05pm</code>, <code>19.05</code> or <code>19:05:30</code> all work.</li>
+      <li>Extra punctuation is fine: <code>19:05: Warm-ups</code> and <code>19:05 - Warm-ups</code> give the same result.</li>
+      <li><code>21:</code> on its own means 21:00.</li>
+      <li>Lines that don't start with a time are copied over unchanged.</li>
+      <li>Rehearsals that run past midnight are handled.</li>
+    </ul>
+  </details>
+</div>
+
+<script>
+(function () {
+  var SAMPLE_START = "19:04";
+  var SAMPLE_NOTES = [
+    "19:04 Warm-ups",
+    "19:12: Announcements",
+    "19:20 Shenandoah from the top",
+    "20:05 Break",
+    "20:20 Sectionals",
+    "21: End"
+  ].join("\n");
+
+  var startEl = document.getElementById("start");
+  var notesEl = document.getElementById("notes");
+  var resultEl = document.getElementById("result");
+  var warnEl = document.getElementById("warnings");
+  var statusEl = document.getElementById("status");
+
+  // Leading bullets, then H(:|.)M(:|.)S with optional am/pm, then the rest.
+  // A separator after the hour (or am/pm) is required so lines like "3 songs" are left alone.
+  var TIME_RE = /^[\s\-–—•*·]*(\d{1,2})(?:([:.])(\d{1,2})?)?(?:[:.](\d{1,2}))?\s*(?:(a\.?m\.?|p\.?m\.?)(?![a-z]))?(?![\d])(.*)$/i;
+
+  function parse(text) {
+    var m = TIME_RE.exec(text);
+    if (!m) return null;
+    var hasSep = !!m[2], ampm = m[5];
+    if (!hasSep && !ampm) return null;
+    var h = parseInt(m[1], 10), mi = m[3] ? parseInt(m[3], 10) : 0, s = m[4] ? parseInt(m[4], 10) : 0;
+    if (h > 24 || mi > 59 || s > 59) return null;
+    if (ampm) {
+      var pm = ampm.toLowerCase().charAt(0) === "p";
+      if (h === 12) h = 0;
+      if (pm) h += 12;
+    }
+    var rest = m[6].replace(/^[\s:.,\-–—]+/, "").trim();
+    return { seconds: h * 3600 + mi * 60 + s, rest: rest };
+  }
+
+  function fmt(sec) {
+    var sign = sec < 0 ? "-" : "";
+    sec = Math.abs(sec);
+    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    var pad = function (n) { return (n < 10 ? "0" : "") + n; };
+    return sign + (h ? pad(h) + ":" : "") + pad(m) + ":" + pad(s);
+  }
+
+  var HALF_DAY = 12 * 3600;
+  // Works whether people write 7:04 or 19:04, and across midnight:
+  // a time is placed within 12 hours after the start. Anything that would land
+  // more than 11 hours in is treated as "a little before the recording started".
+  function relative(t, base) {
+    var d = (((t - base) % HALF_DAY) + HALF_DAY) % HALF_DAY;
+    if (d > 11 * 3600) d -= HALF_DAY;
+    return d;
+  }
+
+  function render() {
+    var startText = startEl.value.trim();
+    var notesText = notesEl.value;
+    warnEl.innerHTML = "";
+    statusEl.textContent = "";
+    var warnings = [];
+
+    var base = startText ? parse(startText) : null;
+    if (!startText || !notesText.trim()) {
+      resultEl.textContent = !startText ? "Fill in the start time in step 1." : "Paste your notes in step 2.";
+      resultEl.classList.add("empty");
+      return;
+    }
+    if (!base) {
+      resultEl.textContent = "The start time in step 1 doesn't look like a time. Try something like 19:04.";
+      resultEl.classList.add("empty");
+      return;
+    }
+
+    var out = [];
+    notesText.split(/\r?\n/).forEach(function (line) {
+      if (!line.trim()) return;
+      var p = parse(line.trim());
+      if (!p) { out.push(line.trim()); return; }
+      var d = relative(p.seconds, base.seconds);
+      if (d < 0) warnings.push("“" + line.trim() + "” is before the recording started, so it shows a minus sign. Check the start time in step 1.");
+      out.push((fmt(d) + " " + p.rest).trim());
+    });
+
+    resultEl.classList.remove("empty");
+    resultEl.textContent = out.join("\n");
+
+    var first = out[0] || "";
+    if (!/^00:00(\s|$)/.test(first) && warnings.length === 0) {
+      warnings.push("For YouTube to show chapters, the first line has to start at 00:00. You can add a line like “00:00 Start” at the top.");
+    }
+    warnings.forEach(function (w) {
+      var p = document.createElement("p");
+      p.className = "note";
+      p.textContent = w;
+      warnEl.appendChild(p);
+    });
+
+    try { localStorage.setItem("rt-start", startEl.value); localStorage.setItem("rt-notes", notesEl.value); } catch (e) {}
+  }
+
+  document.getElementById("copy").addEventListener("click", function () {
+    if (resultEl.classList.contains("empty")) { statusEl.textContent = ""; return; }
+    var text = resultEl.textContent;
+    var done = function () { statusEl.textContent = "Copied! Now paste it into the YouTube description."; };
+    var fallback = function () {
+      var r = document.createRange(); r.selectNodeContents(resultEl);
+      var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      var ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) {}
+      statusEl.textContent = ok ? "Copied! Now paste it into the YouTube description." : "The text is highlighted. Copy it the way you normally would.";
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else { fallback(); }
+  });
+
+  document.getElementById("clear").addEventListener("click", function () {
+    startEl.value = ""; notesEl.value = "";
+    try { localStorage.removeItem("rt-start"); localStorage.removeItem("rt-notes"); } catch (e) {}
+    render();
+    startEl.focus();
+  });
+
+  startEl.addEventListener("input", render);
+  notesEl.addEventListener("input", render);
+
+  var savedStart = null, savedNotes = null;
+  try { savedStart = localStorage.getItem("rt-start"); savedNotes = localStorage.getItem("rt-notes"); } catch (e) {}
+  startEl.value = savedStart !== null ? savedStart : SAMPLE_START;
+  notesEl.value = savedNotes !== null ? savedNotes : SAMPLE_NOTES;
+  render();
+})();
+</script>
+</body>
+</html>
