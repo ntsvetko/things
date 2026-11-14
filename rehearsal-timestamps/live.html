@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rehearsal Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Literata:opsz,wght@7..72,600&display=swap">
+<style>
+  /* Layout: sticky clock + big Mark button on top, list of marks below, finish/copy at the end. */
+  :root {
+    --bg: #f3f6f7; --card: #ffffff; --fg: #1b2a30; --muted: #4f6168; --line: #c9d5d9;
+    --accent: #1d5c69; --accent-fg: #ffffff; --mark: #2e7d5b; --mark-fg: #ffffff;
+    --warn-bg: #fff3d6; --warn-fg: #6b4a00; --ok: #2f7a45;
+    --font-body: "Atkinson Hyperlegible", Verdana, "Segoe UI", sans-serif;
+    --font-head: "Literata", Georgia, serif;
+    --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111b1f; --card: #192529; --fg: #e8f0f2; --muted: #a6b8be; --line: #33464d;
+      --accent: #7cc4d2; --accent-fg: #0d1a1e; --mark: #84d3ab; --mark-fg: #0b2117;
+      --warn-bg: #3a2f12; --warn-fg: #f5d58a; --ok: #7fd197;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #111b1f; --card: #192529; --fg: #e8f0f2; --muted: #a6b8be; --line: #33464d;
+    --accent: #7cc4d2; --accent-fg: #0d1a1e; --mark: #84d3ab; --mark-fg: #0b2117;
+    --warn-bg: #3a2f12; --warn-fg: #f5d58a; --ok: #7fd197;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font-family: var(--font-body); font-size: 19px; line-height: 1.5;
+  }
+  .wrap {
+    max-width: 680px; margin: 0 auto;
+    padding-block: 0 64px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: flex; flex-direction: column; gap: 20px;
+  }
+  .top {
+    position: sticky; top: 0; z-index: 2; background: var(--bg);
+    padding-top: max(12px, env(safe-area-inset-top, 0px)); padding-bottom: 12px;
+    display: flex; flex-direction: column; gap: 10px; border-bottom: 2px solid var(--line);
+  }
+  .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .bar-right { display: flex; align-items: center; gap: 12px; }
+  #finish { padding: 8px 14px; font-size: 0.95rem; }
+  @media (max-width: 480px) { .bar h1 { display: none; } .bar-right { flex: 1; justify-content: space-between; } }
+  .card.done { border-color: var(--accent); }
+  h1 { font-family: var(--font-head); font-weight: 600; font-size: 1.5rem; margin: 0; }
+  .clock { font-family: var(--font-mono); font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  button {
+    font: inherit; font-weight: 700; cursor: pointer; border-radius: 12px; padding: 14px 22px;
+    border: 2px solid var(--accent); background: transparent; color: var(--accent);
+  }
+  button:focus-visible, input:focus { outline: 3px solid var(--accent); outline-offset: 2px; }
+  #mark {
+    width: 100%; min-height: 96px; font-size: 1.6rem; border-color: var(--mark);
+    background: var(--mark); color: var(--mark-fg); transition: transform 0.08s ease;
+  }
+  #mark:active { transform: scale(0.97); }
+  #mark.flash { animation: flash 0.5s ease; }
+  @keyframes flash { 0% { filter: brightness(1.5); } 100% { filter: none; } }
+  @media (prefers-reduced-motion: reduce) { #mark { transition: none; } #mark.flash { animation: none; } #mark:active { transform: none; } }
+  .hint { margin: 0; color: var(--muted); font-size: 0.95rem; }
+  .card {
+    background: var(--card); border: 2px solid var(--line); border-radius: 14px;
+    padding: 18px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .card h2 { font-family: var(--font-head); font-weight: 600; font-size: 1.25rem; margin: 0; }
+  ol#list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .entry {
+    display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px;
+    background: var(--card); border: 2px solid var(--line); border-radius: 12px; padding: 10px;
+  }
+  .entry.new { border-color: var(--mark); }
+  .entry time { font-family: var(--font-mono); font-weight: 700; font-variant-numeric: tabular-nums; font-size: 1.1rem; }
+  .entry input {
+    font: inherit; color: var(--fg); background: var(--bg); min-width: 0; width: 100%;
+    border: 2px solid var(--line); border-radius: 10px; padding: 10px 12px;
+  }
+  .entry input::placeholder { color: var(--muted); opacity: 0.8; }
+  .entry .del { padding: 10px 12px; border-color: var(--line); color: var(--muted); font-size: 0.9rem; }
+  @media (max-width: 480px) {
+    .entry { grid-template-columns: 1fr auto; }
+    .entry input { grid-column: 1 / -1; grid-row: 2; }
+  }
+  @media (max-width: 480px), (max-height: 500px) {
+    .top .hint { display: none; }
+    #mark { min-height: 72px; font-size: 1.4rem; }
+    h1 { font-size: 1.25rem; } .clock { font-size: 1.35rem; }
+  }
+  .mobile-only { display: none; }
+  @media (max-width: 480px) { .mobile-only { display: block; } }
+  .empty { color: var(--muted); text-align: center; padding: 12px; margin: 0; }
+  .result {
+    font-family: var(--font-mono); font-size: 1rem; white-space: pre-wrap; word-break: break-word;
+    background: var(--bg); border: 2px solid var(--line); border-radius: 10px;
+    padding: 14px; margin: 0; min-height: 80px; font-variant-numeric: tabular-nums; user-select: all;
+  }
+  .buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+  .primary { background: var(--accent); color: var(--accent-fg); flex: 1 1 200px; }
+  .primary.copied { background: var(--ok); border-color: var(--ok); }
+  .offset { display: flex; flex-direction: column; gap: 8px; }
+  .offset-label { font-weight: 700; }
+  .stepper { display: flex; align-items: center; gap: 12px; }
+  .stepper button { width: 56px; height: 56px; padding: 0; font-size: 1.6rem; line-height: 1; flex: none; }
+  .stepper .val { min-width: 7.5em; text-align: center; }
+  .stepper output { font-family: var(--font-mono); font-weight: 700; font-size: 1.4rem; font-variant-numeric: tabular-nums; }
+  .status { min-height: 1.5em; margin: 0; font-weight: 700; color: var(--ok); }
+  .note { background: var(--warn-bg); color: var(--warn-fg); border-radius: 10px; padding: 10px 14px; margin: 0; font-size: 0.95rem; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="bar">
+      <h1>Rehearsal Log</h1>
+      <div class="bar-right">
+        <span class="clock" id="clock" aria-label="Current time">--:--:--</span>
+        <button type="button" id="finish">End rehearsal</button>
+      </div>
+    </div>
+    <button id="mark" type="button">Mark this moment</button>
+    <p class="hint">Press the button when something happens, then type what it was. You can also press the space bar.</p>
+  </div>
+  <p class="hint mobile-only">Press the big button when something happens, then type what it was.</p>
+
+
+  <section>
+    <ol id="list" aria-live="polite"></ol>
+  </section>
+
+  <section class="card" id="finishCard">
+    <h2>When rehearsal is over</h2>
+    <p class="hint">Copy this list. To turn it into YouTube times, paste it into the <a href="index.html">converter</a> along with the time the video started.</p>
+    <div class="offset" role="group" aria-labelledby="offLabel">
+      <span class="offset-label" id="offLabel">Move the copied times earlier by:</span>
+      <div class="stepper">
+        <button type="button" id="offMinus" aria-label="Fewer seconds">−</button>
+        <span class="val"><output id="offVal" aria-live="polite">5</output> seconds</span>
+        <button type="button" id="offPlus" aria-label="More seconds">+</button>
+      </div>
+    </div>
+    <p class="hint">We usually press the button a few seconds after something starts, so the copied times are moved a little earlier. The times in the list above stay as you pressed them.</p>
+    <pre class="result" id="result"></pre>
+    <div id="warnings"></div>
+    <div class="buttons">
+      <button class="primary" id="copy" type="button">Copy</button>
+      <button id="reset" type="button">New rehearsal</button>
+    </div>
+    <p class="status" id="status" role="status"></p>
+    <p class="hint">Everything is saved on this device as you go, so closing or refreshing the page won't lose your marks.</p>
+  </section>
+</div>
+
+<script>
+(function () {
+  var KEY = "rehearsal-log-v1";
+  var state = { entries: [] }; // entries: [{ t: epoch ms, text: "" }]
+  var storageOk = true;
+  var OFFSET_KEY = "rehearsal-log-offset";
+  var offset = 5; // seconds to move copied times earlier
+
+  var $ = function (id) { return document.getElementById(id); };
+  var clockEl = $("clock"), markBtn = $("mark"), listEl = $("list");
+  var resultEl = $("result"), warnEl = $("warnings"), statusEl = $("status");
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) {
+        var s = JSON.parse(raw);
+        if (s && Array.isArray(s.entries)) state = { entries: s.entries };
+      }
+    } catch (e) { storageOk = false; }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); storageOk = true; }
+    catch (e) { storageOk = false; }
+  }
+
+  var pad = function (n) { return (n < 10 ? "0" : "") + n; };
+  function clockStr(ms) {
+    var d = new Date(ms);
+    return pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+  }
+
+  function tick() { clockEl.textContent = clockStr(Date.now()); }
+
+  function renderList(focusIndex) {
+    listEl.innerHTML = "";
+    if (!state.entries.length) {
+      var p = document.createElement("li");
+      p.className = "empty"; p.textContent = "No marks yet. Your newest mark will always appear here, at the top.";
+      listEl.appendChild(p);
+      return;
+    }
+    // Newest first, so the latest mark sits right under the pinned button.
+    var last = state.entries.length - 1;
+    state.entries.slice().reverse().forEach(function (e, r) {
+      var i = last - r;
+      var li = document.createElement("li");
+      li.className = "entry" + (i === last ? " new" : "");
+      var t = document.createElement("time");
+      t.textContent = clockStr(e.t);
+      var inp = document.createElement("input");
+      inp.type = "text"; inp.value = e.text; inp.placeholder = "What happened?";
+      inp.setAttribute("aria-label", "What happened at " + clockStr(e.t));
+      inp.addEventListener("input", function () { e.text = inp.value; save(); renderResult(); });
+      inp.addEventListener("keydown", function (ev) { if (ev.key === "Enter") inp.blur(); });
+      var del = document.createElement("button");
+      del.type = "button"; del.className = "del"; del.textContent = "Remove";
+      del.addEventListener("click", function () {
+        if (confirm("Remove the mark at " + clockStr(e.t) + (e.text ? " (" + e.text + ")" : "") + "?")) {
+          state.entries.splice(i, 1); save(); renderList(); renderResult();
+        }
+      });
+      li.appendChild(t); li.appendChild(inp); li.appendChild(del);
+      listEl.appendChild(li);
+      if (i === focusIndex) {
+        window.scrollTo(0, 0);
+        inp.focus({ preventScroll: true });
+      }
+    });
+  }
+
+  function renderResult() {
+    warnEl.innerHTML = ""; statusEl.textContent = "";
+    var warnings = [];
+    if (!storageOk) warnings.push("This browser isn't letting the page save. Don't close or refresh it until you've copied your marks.");
+
+    var lines = [];
+    var entries = state.entries.slice().sort(function (a, b) { return a.t - b.t; });
+    var label = function (e, i) { return e.text.trim() || "Mark " + (i + 1); };
+
+    if (!entries.length) {
+      lines.push("Your list will appear here.");
+    } else {
+      entries.forEach(function (e, i) { lines.push(clockStr(e.t - offset * 1000) + " " + label(e, i)); });
+    }
+    resultEl.textContent = lines.join("\n");
+
+    warnings.forEach(function (w) {
+      var p = document.createElement("p"); p.className = "note"; p.textContent = w; warnEl.appendChild(p);
+    });
+  }
+
+  function renderAll(focusIndex) { renderList(focusIndex); renderResult(); }
+
+  function mark() {
+    var t = Date.now(); // capture first, before anything else
+    state.entries.push({ t: t, text: "" });
+    save();
+    renderList(state.entries.length - 1);
+    renderResult();
+    markBtn.classList.remove("flash"); void markBtn.offsetWidth; markBtn.classList.add("flash");
+    if (navigator.vibrate) { try { navigator.vibrate(40); } catch (e) {} }
+  }
+
+  markBtn.addEventListener("click", mark);
+
+  // Jump to the copy section; close the phone keyboard first.
+  $("finish").addEventListener("click", function () {
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    var card = $("finishCard"), top = document.querySelector(".top");
+    var y = card.getBoundingClientRect().top + window.scrollY - top.offsetHeight - 12;
+    var smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setTimeout(function () {
+      window.scrollTo({ top: y, behavior: smooth ? "smooth" : "auto" });
+      card.classList.add("done");
+      $("copy").focus({ preventScroll: true });
+    }, 50);
+  });
+  document.addEventListener("keydown", function (ev) {
+    var tag = (ev.target.tagName || "").toLowerCase();
+    if (ev.code === "Space" && tag !== "input" && tag !== "button" && tag !== "textarea") {
+      ev.preventDefault(); mark();
+    }
+  });
+
+
+  var flashTimer;
+  $("copy").addEventListener("click", function () {
+    if (!state.entries.length) return;
+    var btn = this, text = resultEl.textContent;
+    var ok = function () {
+      btn.classList.add("copied"); btn.textContent = "Copied ✓";
+      statusEl.textContent = "Copied!";
+      clearTimeout(flashTimer);
+      flashTimer = setTimeout(function () { btn.classList.remove("copied"); btn.textContent = "Copy"; }, 2000);
+    };
+    var fallback = function () {
+      var r = document.createRange(); r.selectNodeContents(resultEl);
+      var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      var done = false;
+      try { done = document.execCommand("copy"); } catch (e) {}
+      if (done) ok(); else statusEl.textContent = "The text is highlighted. Copy it the way you normally would.";
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(ok, fallback);
+    else fallback();
+  });
+
+  $("reset").addEventListener("click", function () {
+    if (state.entries.length && !confirm("Start a new rehearsal? This deletes the " + state.entries.length + " marks on this page. Copy them first if you need them.")) return;
+    state = { entries: [] }; save(); renderAll();
+  });
+
+  // Keep the screen awake so the phone doesn't lock mid-rehearsal (where supported).
+  var wakeLock = null;
+  function keepAwake() {
+    if (!("wakeLock" in navigator) || document.visibilityState !== "visible") return;
+    navigator.wakeLock.request("screen").then(function (l) { wakeLock = l; }).catch(function () {});
+  }
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") { keepAwake(); tick(); } });
+
+  try { var o = parseInt(localStorage.getItem(OFFSET_KEY), 10); if (o >= 0 && o <= 60) offset = o; } catch (e) {}
+  function setOffset(n) {
+    offset = Math.max(0, Math.min(60, n));
+    $("offVal").textContent = offset;
+    try { localStorage.setItem(OFFSET_KEY, String(offset)); } catch (e) {}
+    renderResult();
+  }
+  $("offMinus").addEventListener("click", function () { setOffset(offset - 1); });
+  $("offPlus").addEventListener("click", function () { setOffset(offset + 1); });
+  $("offVal").textContent = offset;
+
+  load();
+  tick(); setInterval(tick, 250);
+  keepAwake();
+  renderAll();
+})();
+</script>
+</body>
+</html>
