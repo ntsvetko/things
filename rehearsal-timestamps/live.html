@@ -107,6 +107,8 @@
   }
   .buttons { display: flex; gap: 12px; flex-wrap: wrap; }
   .primary { background: var(--accent); color: var(--accent-fg); flex: 1 1 200px; }
+  #reset { flex: 1 1 200px; padding-block: 10px; line-height: 1.25; }
+  #reset .sub { display: block; font-weight: 400; font-size: 0.85rem; }
   .primary.copied { background: var(--ok); border-color: var(--ok); }
   .offset { display: flex; flex-direction: column; gap: 8px; }
   .offset-label { font-weight: 700; }
@@ -117,6 +119,10 @@
   .status { min-height: 1.5em; margin: 0; font-weight: 700; color: var(--ok); }
   .note { background: var(--warn-bg); color: var(--warn-fg); border-radius: 10px; padding: 10px 14px; margin: 0; font-size: 0.95rem; }
   a { color: var(--accent); }
+  .help { color: var(--fg); font-size: 0.95rem; background: var(--card); border: 2px solid var(--line); border-radius: 14px; padding: 14px 18px; }
+  .help summary { cursor: pointer; font-weight: 700; color: var(--accent); font-size: 1.05rem; }
+  .help p { margin: 10px 0 0; }
+  .help ol { margin: 10px 0 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 6px; }
 </style>
 </head>
 <body>
@@ -155,11 +161,24 @@
     <div id="warnings"></div>
     <div class="buttons">
       <button class="primary" id="copy" type="button">Copy</button>
-      <button id="reset" type="button">New rehearsal</button>
+      <button id="reset" type="button">New rehearsal<span class="sub">Clear current timestamps</span></button>
     </div>
     <p class="status" id="status" role="status"></p>
     <p class="hint">Everything is saved on this device as you go, so closing or refreshing the page won't lose your marks.</p>
   </section>
+
+  <details class="help">
+    <summary>Put this on your iPhone home screen</summary>
+    <p>This makes the log open like an app, so it's easy to find at rehearsal.</p>
+    <ol>
+      <li>Open this page in <strong>Safari</strong>.</li>
+      <li>Tap the <strong>Share</strong> button (the square with an arrow pointing up). It's at the bottom of the screen, or at the top on an iPad.</li>
+      <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
+      <li>Tap <strong>Add</strong> in the top corner.</li>
+    </ol>
+    <p>Now tap the new icon on your home screen to open the log. Your marks stay saved even if you close it.</p>
+    <p><strong>On Android:</strong> open the page in Chrome, tap the three dots at the top right, then <strong>Add to Home screen</strong>.</p>
+  </details>
 </div>
 
 <script>
