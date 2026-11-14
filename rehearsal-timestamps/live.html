@@ -80,6 +80,8 @@
   }
   .entry.new { border-color: var(--mark); }
   .entry time { font-family: var(--font-mono); font-weight: 700; font-variant-numeric: tabular-nums; font-size: 1.1rem; }
+  .entry time::after { content: "✓ Saved"; display: block; font-family: var(--font-body); font-size: 0.8rem; color: var(--ok); opacity: 0; height: 0; overflow: hidden; transition: opacity 0.3s ease; }
+  .entry time.saved::after { opacity: 1; height: auto; }
   .entry input {
     font: inherit; color: var(--fg); background: var(--bg); min-width: 0; width: 100%;
     border: 2px solid var(--line); border-radius: 10px; padding: 10px 12px;
@@ -216,6 +218,14 @@
       inp.setAttribute("aria-label", "What happened at " + clockStr(e.t));
       inp.addEventListener("input", function () { e.text = inp.value; save(); renderResult(); });
       inp.addEventListener("keydown", function (ev) { if (ev.key === "Enter") inp.blur(); });
+      var savedTimer;
+      inp.addEventListener("blur", function () {
+        e.text = inp.value; save(); renderResult();
+        if (!storageOk || !inp.value.trim()) return;
+        t.classList.remove("saved"); void t.offsetWidth; t.classList.add("saved");
+        clearTimeout(savedTimer);
+        savedTimer = setTimeout(function () { t.classList.remove("saved"); }, 2500);
+      });
       var del = document.createElement("button");
       del.type = "button"; del.className = "del"; del.textContent = "Remove";
       del.addEventListener("click", function () {
@@ -266,6 +276,17 @@
   }
 
   markBtn.addEventListener("click", mark);
+
+  // iPhones keep the keyboard open when you tap empty space; close it (which saves).
+  document.addEventListener("pointerdown", function (ev) {
+    var a = document.activeElement;
+    if (!a || a.tagName !== "INPUT" || ev.target === a) return;
+    if (ev.target.closest && ev.target.closest("input, button, a")) return;
+    a.blur();
+  });
+  // Save one last time if the page is hidden or closed mid-typing.
+  window.addEventListener("pagehide", save);
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") save(); });
 
   // Jump to the copy section; close the phone keyboard first.
   $("finish").addEventListener("click", function () {
