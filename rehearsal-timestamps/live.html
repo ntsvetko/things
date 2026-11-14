@@ -152,7 +152,7 @@
       <span class="offset-label" id="offLabel">Move the copied times earlier by:</span>
       <div class="stepper">
         <button type="button" id="offMinus" aria-label="Fewer seconds">−</button>
-        <span class="val"><output id="offVal" aria-live="polite">5</output> seconds</span>
+        <span class="val"><output id="offVal" aria-live="polite">3</output> seconds</span>
         <button type="button" id="offPlus" aria-label="More seconds">+</button>
       </div>
     </div>
@@ -186,8 +186,8 @@
   var KEY = "rehearsal-log-v1";
   var state = { entries: [] }; // entries: [{ t: epoch ms, text: "" }]
   var storageOk = true;
-  var OFFSET_KEY = "rehearsal-log-offset";
-  var offset = 5; // seconds to move copied times earlier
+  var OFFSET_KEY = "rehearsal-log-offset-v2"; // v2: default changed from 5 to 3
+  var offset = 3; // seconds to move copied times earlier
 
   var $ = function (id) { return document.getElementById(id); };
   var clockEl = $("clock"), markBtn = $("mark"), listEl = $("list");
