@@ -250,7 +250,7 @@
   var KEY = "rehearsal-log-pilot-v1";
   var OFFSET_KEY = "rehearsal-log-pilot-offset-v1";
   var NEW_PIECE = "__new__";
-  // entries: [{ t, kind: "start"|"mark", piece, from, to, note }]; pieces survive "New rehearsal".
+  // entries: [{ t, kind: "start"|"mark", piece, from, to, note }]; pieces are cleared by "New rehearsal".
   var state = { entries: [], pieces: [] };
   var storageOk = true;
   var offset = 3;
@@ -654,8 +654,8 @@
   });
 
   $("reset").addEventListener("click", function () {
-    if (state.entries.length && !confirm("Start a new rehearsal? This deletes the " + state.entries.length + " marks on this page. Copy them first if you need them.")) return;
-    state.entries = []; openT = null; save(); renderAll();
+    if (state.entries.length && !confirm("Start a new rehearsal? This deletes the " + state.entries.length + " marks and the list of pieces on this page. Copy them first if you need them.")) return;
+    state.entries = []; state.pieces = []; openT = null; save(); renderAll();
   });
 
   // Keep the screen awake so the phone doesn't lock mid-rehearsal (where supported).
