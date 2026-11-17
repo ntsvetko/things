@@ -75,7 +75,7 @@
   .card h2 { font-family: var(--font-head); font-weight: 600; font-size: 1.25rem; margin: 0; }
   ol#list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
   .entry {
-    display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px;
+    display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 10px;
     background: var(--card); border: 2px solid var(--line); border-radius: 12px; padding: 10px;
   }
   .entry.new { border-color: var(--mark); }
@@ -88,9 +88,16 @@
   }
   .entry input::placeholder { color: var(--muted); opacity: 0.8; }
   .entry .del { padding: 10px 12px; border-color: var(--line); color: var(--muted); font-size: 0.9rem; }
+  .entry .ok {
+    width: 52px; height: 52px; padding: 0; font-size: 1.5rem; line-height: 1;
+    border-color: var(--mark); background: var(--mark); color: var(--mark-fg);
+  }
   @media (max-width: 480px) {
     .entry { grid-template-columns: 1fr auto; }
-    .entry input { grid-column: 1 / -1; grid-row: 2; }
+    .entry time { grid-column: 1; grid-row: 1; }
+    .entry .del { grid-column: 2; grid-row: 1; }
+    .entry input { grid-column: 1; grid-row: 2; }
+    .entry .ok { grid-column: 2; grid-row: 2; justify-self: end; }
   }
   @media (max-width: 480px), (max-height: 500px) {
     .top .hint { display: none; }
@@ -122,6 +129,7 @@
   .help { color: var(--fg); font-size: 0.95rem; background: var(--card); border: 2px solid var(--line); border-radius: 14px; padding: 14px 18px; }
   .help summary { cursor: pointer; font-weight: 700; color: var(--accent); font-size: 1.05rem; }
   .help p { margin: 10px 0 0; }
+  .pilot-link { text-align: center; font-size: 0.85rem; }
   .help ol { margin: 10px 0 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 6px; }
 </style>
 </head>
@@ -179,6 +187,7 @@
     <p>Now tap the new icon on your home screen to open the log. Your marks stay saved even if you close it.</p>
     <p><strong>On Android:</strong> open the page in Chrome, tap the three dots at the top right, then <strong>Add to Home screen</strong>.</p>
   </details>
+  <p class="hint pilot-link">Trying out the new version? <a href="live-pilot.html">Open the pilot log</a>.</p>
 </div>
 
 <script>
@@ -252,7 +261,11 @@
           state.entries.splice(i, 1); save(); renderList(); renderResult();
         }
       });
-      li.appendChild(t); li.appendChild(inp); li.appendChild(del);
+      var ok = document.createElement("button");
+      ok.type = "button"; ok.className = "ok"; ok.textContent = "✓";
+      ok.setAttribute("aria-label", "Done with the note at " + clockStr(e.t));
+      ok.addEventListener("click", function () { inp.blur(); });
+      li.appendChild(t); li.appendChild(inp); li.appendChild(ok); li.appendChild(del);
       listEl.appendChild(li);
       if (i === focusIndex) {
         window.scrollTo(0, 0);

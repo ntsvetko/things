@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rehearsal Log (pilot)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Literata:opsz,wght@7..72,600&display=swap">
+<style>
+  /* Pilot of the live log: warm-up start mark, piece + bar fields per mark, one mark open at a time,
+     copied times count from the warm-up start so no converter step is needed. */
+  :root {
+    --bg: #f3f6f7; --card: #ffffff; --fg: #1b2a30; --muted: #4f6168; --line: #c9d5d9;
+    --accent: #1d5c69; --accent-fg: #ffffff; --mark: #2e7d5b; --mark-fg: #ffffff;
+    --start: #8a4b0f; --start-bg: #fdf0e1;
+    --warn-bg: #fff3d6; --warn-fg: #6b4a00; --ok: #2f7a45;
+    --font-body: "Atkinson Hyperlegible", Verdana, "Segoe UI", sans-serif;
+    --font-head: "Literata", Georgia, serif;
+    --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111b1f; --card: #192529; --fg: #e8f0f2; --muted: #a6b8be; --line: #33464d;
+      --accent: #7cc4d2; --accent-fg: #0d1a1e; --mark: #84d3ab; --mark-fg: #0b2117;
+      --start: #f2b877; --start-bg: #2e2215;
+      --warn-bg: #3a2f12; --warn-fg: #f5d58a; --ok: #7fd197;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #111b1f; --card: #192529; --fg: #e8f0f2; --muted: #a6b8be; --line: #33464d;
+    --accent: #7cc4d2; --accent-fg: #0d1a1e; --mark: #84d3ab; --mark-fg: #0b2117;
+    --start: #f2b877; --start-bg: #2e2215;
+    --warn-bg: #3a2f12; --warn-fg: #f5d58a; --ok: #7fd197;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font-family: var(--font-body); font-size: 19px; line-height: 1.5;
+  }
+  .wrap {
+    max-width: 680px; margin: 0 auto;
+    padding-block: 0 64px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: flex; flex-direction: column; gap: 20px;
+  }
+  .top {
+    position: sticky; top: 0; z-index: 2; background: var(--bg);
+    padding-top: max(12px, env(safe-area-inset-top, 0px)); padding-bottom: 12px;
+    display: flex; flex-direction: column; gap: 10px; border-bottom: 2px solid var(--line);
+  }
+  .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .bar-right { display: flex; align-items: center; gap: 12px; }
+  #finish { padding: 8px 14px; font-size: 0.95rem; }
+  @media (max-width: 480px) { .bar h1 { display: none; } .bar-right { flex: 1; justify-content: space-between; } }
+  h1 { font-family: var(--font-head); font-weight: 600; font-size: 1.5rem; margin: 0; }
+  .tag { font-family: var(--font-body); font-size: 0.8rem; font-weight: 700; color: var(--start); vertical-align: middle; }
+  .clock { font-family: var(--font-mono); font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  button {
+    font: inherit; font-weight: 700; cursor: pointer; border-radius: 12px; padding: 14px 22px;
+    border: 2px solid var(--accent); background: transparent; color: var(--accent);
+  }
+  button:focus-visible, input:focus, textarea:focus, select:focus { outline: 3px solid var(--accent); outline-offset: 2px; }
+  #mark {
+    width: 100%; min-height: 96px; font-size: 1.6rem; border-color: var(--mark);
+    background: var(--mark); color: var(--mark-fg); transition: transform 0.08s ease;
+  }
+  #mark:active { transform: scale(0.97); }
+  #mark.flash { animation: flash 0.5s ease; }
+  @keyframes flash { 0% { filter: brightness(1.5); } 100% { filter: none; } }
+  #startBtn { width: 100%; padding-block: 10px; border-color: var(--start); color: var(--start); background: var(--start-bg); }
+  .since { margin: 0; font-size: 0.95rem; color: var(--start); font-weight: 700; }
+  .since span { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  @media (prefers-reduced-motion: reduce) { #mark { transition: none; } #mark.flash { animation: none; } #mark:active { transform: none; } }
+  .hint { margin: 0; color: var(--muted); font-size: 0.95rem; }
+  .card {
+    background: var(--card); border: 2px solid var(--line); border-radius: 14px;
+    padding: 18px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .card.done { border-color: var(--accent); }
+  .card h2 { font-family: var(--font-head); font-weight: 600; font-size: 1.25rem; margin: 0; }
+
+  ol#list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .entry { background: var(--card); border: 2px solid var(--line); border-radius: 12px; }
+  .entry.start { border-color: var(--start); background: var(--start-bg); }
+  .entry.open { border-color: var(--mark); }
+  .entry time { font-family: var(--font-mono); font-weight: 700; font-variant-numeric: tabular-nums; font-size: 1.05rem; }
+  .entry.start time { color: var(--start); }
+
+  /* Closed mark: one tappable line. */
+  .summary {
+    display: flex; align-items: baseline; gap: 12px; width: 100%; text-align: left;
+    border: 0; border-radius: 10px; padding: 12px; color: var(--fg); font-weight: 400;
+  }
+  .summary .label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .summary .label.blank { color: var(--muted); font-style: italic; }
+  .summary .saved { font-size: 0.8rem; color: var(--ok); font-weight: 700; white-space: nowrap; }
+
+  /* Open mark: the editor. */
+  .editor { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .ed-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .ed-head .del { padding: 8px 12px; border-color: var(--line); color: var(--muted); font-size: 0.9rem; }
+  .seg { display: flex; border: 2px solid var(--accent); border-radius: 10px; overflow: hidden; }
+  .seg button {
+    flex: 1; border: 0; border-radius: 0; padding: 8px 10px; font-size: 0.95rem; min-height: 44px;
+  }
+  .seg button + button { border-left: 2px solid var(--accent); }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+  .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .row > .lbl { font-weight: 700; width: 3.2em; flex: none; }
+  .entry select, .entry input, .entry textarea {
+    font: inherit; color: var(--fg); background: var(--bg); min-width: 0;
+    border: 2px solid var(--line); border-radius: 10px; padding: 9px 12px;
+  }
+  .entry select { flex: 1; min-height: 48px; }
+  .bars { display: flex; align-items: center; gap: 6px; flex: 1; }
+  .bars span { color: var(--muted); }
+  .entry input.bar-n { width: 3.6em; text-align: center; font-variant-numeric: tabular-nums; }
+  .same { padding: 8px 10px; font-size: 0.9rem; margin-left: auto; white-space: nowrap; }
+  .voices { display: flex; gap: 8px; flex: 1; align-items: center; }
+  .voices button { width: 48px; height: 44px; padding: 0; border-color: var(--line); color: var(--fg); }
+  .voices button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .voices .tutti { color: var(--muted); font-size: 0.9rem; font-weight: 700; margin-left: 4px; }
+  .note-row { display: flex; align-items: flex-end; gap: 8px; }
+  .entry textarea {
+    flex: 1; resize: none; overflow: hidden; line-height: 1.4; min-height: 52px;
+    overflow-wrap: anywhere; white-space: pre-wrap;
+  }
+  .entry ::placeholder { color: var(--muted); opacity: 0.8; }
+  .ok {
+    width: 52px; height: 52px; padding: 0; font-size: 1.5rem; line-height: 1; flex: none;
+    border-color: var(--mark); background: var(--mark); color: var(--mark-fg);
+  }
+  @media (max-width: 480px), (max-height: 500px) {
+    .top .hint { display: none; }
+    #mark { min-height: 72px; font-size: 1.4rem; }
+    h1 { font-size: 1.25rem; } .clock { font-size: 1.35rem; }
+    .row > .lbl { width: auto; min-width: 2.6em; }
+  }
+  .empty { color: var(--muted); text-align: center; padding: 12px; margin: 0; }
+  .result {
+    font-family: var(--font-mono); font-size: 1rem; white-space: pre-wrap; word-break: break-word;
+    background: var(--bg); border: 2px solid var(--line); border-radius: 10px;
+    padding: 14px; margin: 0; min-height: 80px; font-variant-numeric: tabular-nums; user-select: all;
+  }
+  .buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+  .primary { background: var(--accent); color: var(--accent-fg); flex: 1 1 200px; }
+  #reset { flex: 1 1 200px; padding-block: 10px; line-height: 1.25; }
+  #reset .sub { display: block; font-weight: 400; font-size: 0.85rem; }
+  .primary.copied { background: var(--ok); border-color: var(--ok); }
+  .field { display: flex; flex-direction: column; gap: 8px; }
+  .field-label { font-weight: 700; }
+  #startTime {
+    font: inherit; font-family: var(--font-mono); font-size: 1.3rem; color: var(--fg); background: var(--bg);
+    border: 2px solid var(--line); border-radius: 10px; padding: 8px 12px; max-width: 220px;
+  }
+  .stepper { display: flex; align-items: center; gap: 12px; }
+  .stepper button { width: 56px; height: 56px; padding: 0; font-size: 1.6rem; line-height: 1; flex: none; }
+  .stepper .val { min-width: 7.5em; text-align: center; }
+  .stepper output { font-family: var(--font-mono); font-weight: 700; font-size: 1.4rem; font-variant-numeric: tabular-nums; }
+  .status { min-height: 1.5em; margin: 0; font-weight: 700; color: var(--ok); }
+  .note { background: var(--warn-bg); color: var(--warn-fg); border-radius: 10px; padding: 10px 14px; margin: 0; font-size: 0.95rem; }
+  a { color: var(--accent); }
+  .help { color: var(--fg); font-size: 0.95rem; background: var(--card); border: 2px solid var(--line); border-radius: 14px; padding: 14px 18px; }
+  .help summary { cursor: pointer; font-weight: 700; color: var(--accent); font-size: 1.05rem; }
+  .help p { margin: 10px 0 0; }
+  .help ol, .help ul { margin: 10px 0 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="bar">
+      <h1>Rehearsal Log <span class="tag">PILOT</span></h1>
+      <div class="bar-right">
+        <span class="clock" id="clock" aria-label="Current time">--:--:--</span>
+        <button type="button" id="finish">End rehearsal</button>
+      </div>
+    </div>
+    <button id="mark" type="button">Mark this moment</button>
+    <button id="startBtn" type="button">▶ Warm-ups are starting</button>
+    <p class="since" id="since" hidden>Times count from warm-ups: <span id="sinceVal"></span></p>
+    <p class="hint">Press the big button when something happens, then fill in the piece, bars and a note. Press ✓ when you're done.</p>
+  </div>
+
+  <section>
+    <ol id="list" aria-live="polite"></ol>
+  </section>
+
+  <section class="card" id="finishCard">
+    <h2>When rehearsal is over</h2>
+    <div class="field">
+      <label class="field-label" for="startTime">Times count from (warm-ups start):</label>
+      <input id="startTime" type="time" step="1">
+      <p class="hint" id="startHint"></p>
+    </div>
+    <div class="field" role="group" aria-labelledby="offLabel">
+      <span class="field-label" id="offLabel">Start each copied time earlier by:</span>
+      <div class="stepper">
+        <button type="button" id="offMinus" aria-label="Fewer seconds">−</button>
+        <span class="val"><output id="offVal" aria-live="polite">3</output> seconds</span>
+        <button type="button" id="offPlus" aria-label="More seconds">+</button>
+      </div>
+      <p class="hint">We usually press the button a few seconds after something starts, so each time is moved a little earlier. The warm-ups line stays at 00:00.</p>
+    </div>
+    <pre class="result" id="result"></pre>
+    <div id="warnings"></div>
+    <div class="buttons">
+      <button class="primary" id="copy" type="button">Copy</button>
+      <button id="reset" type="button">New rehearsal<span class="sub">Clear current timestamps</span></button>
+    </div>
+    <p class="status" id="status" role="status"></p>
+    <p class="hint">Everything is saved on this device as you go, so closing or refreshing the page won't lose your marks. This pilot page keeps its own list, separate from the <a href="live.html">regular live log</a>.</p>
+  </section>
+
+  <details class="help">
+    <summary>How this version works</summary>
+    <ul>
+      <li>Press <strong>Warm-ups are starting</strong> when the recording starts. Copied times count from that moment, so they're ready for YouTube without the converter.</li>
+      <li>Each new mark uses the same piece as the mark before it. Change it if the piece changed.</li>
+      <li>For a mark that isn't about a passage (a break, an announcement), tap <strong>Just a note</strong>. Only your note is copied.</li>
+      <li>Tap <strong>S</strong>, <strong>A</strong>, <strong>T</strong> or <strong>B</strong> for who's singing. All four comes out as “tutti”.</li>
+      <li><strong>Same bars</strong> copies the bars from the mark before, for when a passage is run again.</li>
+      <li>Only the newest mark is open. Tap any older line to change it.</li>
+      <li>Forgot to press the warm-ups button? Type the start time in the box at the end.</li>
+    </ul>
+  </details>
+
+  <details class="help">
+    <summary>Put this on your iPhone home screen</summary>
+    <ol>
+      <li>Open this page in <strong>Safari</strong>.</li>
+      <li>Tap the <strong>Share</strong> button (the square with an arrow pointing up).</li>
+      <li>Scroll down and tap <strong>Add to Home Screen</strong>, then <strong>Add</strong>.</li>
+    </ol>
+    <p><strong>On Android:</strong> open the page in Chrome, tap the three dots at the top right, then <strong>Add to Home screen</strong>.</p>
+  </details>
+</div>
+
+<script>
+(function () {
+  var KEY = "rehearsal-log-pilot-v1";
+  var OFFSET_KEY = "rehearsal-log-pilot-offset-v1";
+  var NEW_PIECE = "__new__";
+  // entries: [{ t, kind: "start"|"mark", piece, from, to, note }]; pieces survive "New rehearsal".
+  var state = { entries: [], pieces: [] };
+  var storageOk = true;
+  var offset = 3;
+  var openT = null; // the t of the mark whose editor is open (t is unique enough as an id)
+  var savedT = null, savedTimer;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var clockEl = $("clock"), markBtn = $("mark"), listEl = $("list");
+  var resultEl = $("result"), warnEl = $("warnings"), statusEl = $("status");
+
+  function load() {
+    try {
+      var s = JSON.parse(localStorage.getItem(KEY) || "null");
+      if (s && Array.isArray(s.entries)) state.entries = s.entries;
+      if (s && Array.isArray(s.pieces)) state.pieces = s.pieces;
+    } catch (e) { storageOk = false; }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); storageOk = true; }
+    catch (e) { storageOk = false; }
+  }
+
+  var pad = function (n) { return (n < 10 ? "0" : "") + n; };
+  function clockStr(ms) {
+    var d = new Date(ms);
+    return pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+  }
+  function relStr(sec) {
+    var sign = sec < 0 ? "-" : "";
+    sec = Math.abs(sec);
+    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    return sign + (h ? pad(h) + ":" : "") + pad(m) + ":" + pad(s);
+  }
+  function tick() { clockEl.textContent = clockStr(Date.now()); }
+
+  function sorted() { return state.entries.slice().sort(function (a, b) { return a.t - b.t; }); }
+  function startEntry() {
+    for (var i = 0; i < state.entries.length; i++) if (state.entries[i].kind === "start") return state.entries[i];
+    return null;
+  }
+  function prevMark(e) {
+    var list = sorted(), best = null;
+    list.forEach(function (x) { if (x.kind !== "start" && !x.free && x.t < e.t) best = x; });
+    return best;
+  }
+  function bars(e) {
+    var f = (e.from || "").trim(), t = (e.to || "").trim();
+    if (f && t && f !== t) return "m" + f + "-m" + t;
+    return f ? "m" + f : t ? "m" + t : "";
+  }
+  var VOICES = ["S", "A", "T", "B"];
+  function voices(e) {
+    var v = VOICES.filter(function (x) { return (e.voices || "").indexOf(x) >= 0; });
+    if (v.length === 1) return { S: "sopranos", A: "altos", T: "tenors", B: "basses" }[v[0]];
+    return v.length === 4 ? "tutti" : v.join("+");
+  }
+  function label(e) {
+    if (e.kind === "start") return (e.note || "").trim() || "Warm-ups";
+    if (e.free) return (e.note || "").trim();
+    return [e.piece || "", bars(e), voices(e), (e.note || "").trim()].filter(Boolean).join(" ");
+  }
+  function addPiece(name) {
+    state.pieces = state.pieces.filter(function (p) { return p !== name; });
+    state.pieces.unshift(name); // most recent first
+  }
+
+  // ---- list ----
+  function renderList(focusSel) {
+    listEl.innerHTML = "";
+    var st = startEntry();
+    $("startBtn").hidden = !!st;
+    $("since").hidden = !st;
+    if (st) $("sinceVal").textContent = clockStr(st.t);
+
+    if (!state.entries.length) {
+      var p = document.createElement("li");
+      p.className = "empty"; p.textContent = "No marks yet. Your newest mark will always appear here, at the top.";
+      listEl.appendChild(p);
+      return;
+    }
+    sorted().reverse().forEach(function (e) {
+      var li = document.createElement("li");
+      li.className = "entry" + (e.kind === "start" ? " start" : "") + (e.t === openT ? " open" : "");
+      if (e.t === openT) li.appendChild(editor(e, focusSel));
+      else li.appendChild(summary(e));
+      listEl.appendChild(li);
+    });
+  }
+
+  function summary(e) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "summary";
+    var t = document.createElement("time"); t.textContent = clockStr(e.t);
+    var l = document.createElement("span");
+    var text = label(e);
+    l.className = "label" + (text ? "" : " blank");
+    l.textContent = e.kind === "start" ? "▶ " + text + " (start)" : (text || "Tap to add details");
+    b.appendChild(t); b.appendChild(l);
+    if (e.t === savedT) {
+      var s = document.createElement("span"); s.className = "saved"; s.textContent = "✓ Saved"; b.appendChild(s);
+    }
+    b.setAttribute("aria-label", "Edit the mark at " + clockStr(e.t) + (text ? ": " + text : ""));
+    b.addEventListener("click", function () { openT = e.t; renderList("first"); });
+    return b;
+  }
+
+  function editor(e, focusSel) {
+    var box = document.createElement("div"); box.className = "editor";
+    var changed = function () { save(); renderResult(); };
+
+    var head = document.createElement("div"); head.className = "ed-head";
+    var t = document.createElement("time");
+    t.textContent = (e.kind === "start" ? "▶ " : "") + clockStr(e.t) + (e.kind === "start" ? " warm-ups start" : "");
+    var del = document.createElement("button");
+    del.type = "button"; del.className = "del"; del.textContent = "Remove";
+    del.addEventListener("click", function () {
+      var text = label(e);
+      if (!confirm("Remove the mark at " + clockStr(e.t) + (text ? " (" + text + ")" : "") + "?")) return;
+      state.entries = state.entries.filter(function (x) { return x !== e; });
+      openT = null; save(); renderAll();
+    });
+    head.appendChild(t); head.appendChild(del);
+    box.appendChild(head);
+
+    var first = null, pr, br, wr, segBars, segNote;
+    if (e.kind !== "start") {
+      // Piece & bars / Just a note switch. Values stay saved while hidden, so switching back is harmless.
+      var seg = document.createElement("div"); seg.className = "seg";
+      seg.setAttribute("role", "group"); seg.setAttribute("aria-label", "Kind of mark");
+      segBars = document.createElement("button"); segBars.type = "button"; segBars.textContent = "Piece & bars";
+      segNote = document.createElement("button"); segNote.type = "button"; segNote.textContent = "Just a note";
+      var setFree = function (free, focus) {
+        e.free = free;
+        segBars.setAttribute("aria-pressed", String(!free));
+        segNote.setAttribute("aria-pressed", String(free));
+        pr.hidden = br.hidden = wr.hidden = free;
+        note.placeholder = free ? "Note (for example: break)" : "Note (for example: softer)";
+        if (focus) { (free ? note : fromIn).focus(); changed(); }
+      };
+      segBars.addEventListener("click", function () { setFree(false, true); });
+      segNote.addEventListener("click", function () { setFree(true, true); });
+      seg.appendChild(segBars); seg.appendChild(segNote);
+      box.appendChild(seg);
+
+      // Piece
+      pr = document.createElement("div"); pr.className = "row";
+      var pl = document.createElement("label"); pl.className = "lbl"; pl.textContent = "Piece";
+      var sel = document.createElement("select");
+      var id = "piece-" + e.t; sel.id = id; pl.htmlFor = id;
+      var fill = function () {
+        sel.innerHTML = "";
+        var opts = [["", "No piece"]].concat(state.pieces.map(function (p) { return [p, p]; }), [[NEW_PIECE, "＋ New piece…"]]);
+        if (e.piece && state.pieces.indexOf(e.piece) < 0) opts.splice(1, 0, [e.piece, e.piece]);
+        opts.forEach(function (o) {
+          var op = document.createElement("option"); op.value = o[0]; op.textContent = o[1]; sel.appendChild(op);
+        });
+        sel.value = e.piece || "";
+      };
+      fill();
+      sel.addEventListener("change", function () {
+        if (sel.value === NEW_PIECE) {
+          var name = (prompt("Name of the piece:") || "").trim();
+          if (name) { addPiece(name); e.piece = name; }
+          fill();
+        } else {
+          e.piece = sel.value;
+          if (e.piece) addPiece(e.piece);
+        }
+        changed();
+      });
+      pr.appendChild(pl); pr.appendChild(sel);
+      box.appendChild(pr);
+
+      // Bars
+      br = document.createElement("div"); br.className = "row";
+      var bl = document.createElement("span"); bl.className = "lbl"; bl.textContent = "Bars";
+      var bw = document.createElement("div"); bw.className = "bars";
+      var mk = function (key, aria) {
+        var i = document.createElement("input");
+        i.type = "text"; i.inputMode = "numeric"; i.className = "bar-n"; i.value = e[key] || "";
+        i.setAttribute("autocomplete", "off"); i.setAttribute("autocorrect", "off"); i.spellcheck = false;
+        i.setAttribute("aria-label", aria); i.placeholder = "m";
+        i.addEventListener("input", function () { e[key] = i.value.trim(); changed(); });
+        i.addEventListener("keydown", function (ev) { if (ev.key === "Enter") { ev.preventDefault(); (key === "from" ? toIn : note).focus(); } });
+        return i;
+      };
+      var fromIn = mk("from", "From bar"), toIn = mk("to", "To bar");
+      var dash = document.createElement("span"); dash.textContent = "to";
+      bw.appendChild(fromIn); bw.appendChild(dash); bw.appendChild(toIn);
+      var prev = prevMark(e);
+      if (prev && (prev.from || prev.to)) {
+        var same = document.createElement("button");
+        same.type = "button"; same.className = "same"; same.textContent = "Same bars";
+        same.setAttribute("aria-label", "Same bars as before: " + bars(prev));
+        same.addEventListener("click", function () {
+          e.from = prev.from || ""; e.to = prev.to || "";
+          fromIn.value = e.from; toIn.value = e.to; changed();
+        });
+        bw.appendChild(same);
+      }
+      br.appendChild(bl); br.appendChild(bw);
+      box.appendChild(br);
+
+      // Who: S/A/T/B toggles; all four copy as "tutti".
+      wr = document.createElement("div"); wr.className = "row";
+      var wl = document.createElement("span"); wl.className = "lbl"; wl.textContent = "Who";
+      var vw = document.createElement("div"); vw.className = "voices";
+      var tut = document.createElement("span"); tut.className = "tutti";
+      var showTutti = function () { tut.textContent = voices(e) === "tutti" ? "= tutti" : ""; };
+      VOICES.forEach(function (v) {
+        var vb = document.createElement("button");
+        vb.type = "button"; vb.textContent = v;
+        vb.setAttribute("aria-label", { S: "Sopranos", A: "Altos", T: "Tenors", B: "Basses" }[v]);
+        vb.setAttribute("aria-pressed", String((e.voices || "").indexOf(v) >= 0));
+        vb.addEventListener("click", function () {
+          var on = (e.voices || "").indexOf(v) >= 0;
+          e.voices = VOICES.filter(function (x) { return x === v ? !on : (e.voices || "").indexOf(x) >= 0; }).join("");
+          vb.setAttribute("aria-pressed", String(!on));
+          showTutti(); changed();
+        });
+        vw.appendChild(vb);
+      });
+      showTutti();
+      vw.appendChild(tut);
+      wr.appendChild(wl); wr.appendChild(vw);
+      box.appendChild(wr);
+      first = fromIn;
+    }
+
+    // Note + done
+    var nr = document.createElement("div"); nr.className = "note-row";
+    var note = document.createElement("textarea");
+    note.rows = 1; note.value = e.note || "";
+    note.placeholder = e.kind === "start" ? "Warm-ups" : "Note (for example: softer)";
+    note.setAttribute("aria-label", "Note for the mark at " + clockStr(e.t));
+    note.setAttribute("autocorrect", "off"); note.setAttribute("autocomplete", "off"); note.spellcheck = false;
+    var grow = function () { note.style.height = "auto"; note.style.height = note.scrollHeight + 4 + "px"; };
+    note.addEventListener("input", function () { e.note = note.value.replace(/\n/g, " "); changed(); grow(); });
+    note.addEventListener("keydown", function (ev) { if (ev.key === "Enter") { ev.preventDefault(); done(); } });
+    var ok = document.createElement("button");
+    ok.type = "button"; ok.className = "ok"; ok.textContent = "✓";
+    ok.setAttribute("aria-label", "Done with this mark");
+    ok.addEventListener("click", done);
+    nr.appendChild(note); nr.appendChild(ok);
+    box.appendChild(nr);
+    if (segBars) { setFree(!!e.free, false); if (e.free) first = note; }
+    if (!first) first = note;
+
+    function done() {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      save(); renderResult();
+      openT = null;
+      savedT = storageOk ? e.t : null;
+      clearTimeout(savedTimer);
+      savedTimer = setTimeout(function () { savedT = null; if (openT === null) renderList(); }, 2500);
+      renderList();
+    }
+
+    requestAnimationFrame(function () {
+      grow();
+      if (focusSel) {
+        if (focusSel === "top") window.scrollTo(0, 0);
+        first.focus({ preventScroll: focusSel === "top" });
+      }
+    });
+    return box;
+  }
+
+  // ---- result ----
+  function renderResult() {
+    warnEl.innerHTML = ""; statusEl.textContent = "";
+    var warnings = [];
+    if (!storageOk) warnings.push("This browser isn't letting the page save. Don't close or refresh it until you've copied your marks.");
+
+    var st = startEntry();
+    var startIn = $("startTime");
+    if (document.activeElement !== startIn) startIn.value = st ? clockStr(st.t) : "";
+    $("startHint").textContent = st
+      ? "Set by the warm-ups button. Change it if the video started at a different time."
+      : "Not set yet. Press “Warm-ups are starting”, or type the time the video started.";
+
+    var entries = sorted(), lines = [];
+    if (!entries.length) {
+      lines.push("Your list will appear here.");
+    } else if (!st) {
+      warnings.push("No warm-ups start yet, so these are clock times. Set the start time above, or paste them into the converter.");
+      entries.forEach(function (e, i) { lines.push(clockStr(e.t - offset * 1000) + " " + (label(e) || "Mark " + (i + 1))); });
+    } else {
+      var before = 0;
+      entries.forEach(function (e, i) {
+        var d;
+        if (e === st) d = 0;
+        else {
+          d = Math.round((e.t - st.t) / 1000);
+          if (d < 0) before++;
+          else d = Math.max(0, d - offset);
+        }
+        lines.push(relStr(d) + " " + (label(e) || "Mark " + (i + 1)));
+      });
+      if (before) warnings.push(before === 1
+        ? "One mark is before the warm-ups start, so it shows a minus sign."
+        : before + " marks are before the warm-ups start, so they show a minus sign.");
+    }
+    resultEl.textContent = lines.join("\n");
+    warnings.forEach(function (w) {
+      var p = document.createElement("p"); p.className = "note"; p.textContent = w; warnEl.appendChild(p);
+    });
+  }
+
+  function renderAll(focusSel) { renderList(focusSel); renderResult(); }
+
+  // ---- actions ----
+  function mark() {
+    var t = Date.now(); // capture first, before anything else
+    if (state.entries.some(function (x) { return x.t === t; })) t++;
+    var last = null;
+    sorted().forEach(function (x) { if (x.kind !== "start" && !x.free) last = x; });
+    state.entries.push({ t: t, kind: "mark", piece: last ? last.piece || "" : "", from: "", to: "", note: "" });
+    openT = t;
+    save();
+    renderAll("top");
+    markBtn.classList.remove("flash"); void markBtn.offsetWidth; markBtn.classList.add("flash");
+    if (navigator.vibrate) { try { navigator.vibrate(40); } catch (e) {} }
+  }
+  markBtn.addEventListener("click", mark);
+
+  $("startBtn").addEventListener("click", function () {
+    if (startEntry()) return;
+    var t = Date.now();
+    state.entries.push({ t: t, kind: "start", note: "" });
+    save(); renderAll();
+    if (navigator.vibrate) { try { navigator.vibrate(40); } catch (e) {} }
+  });
+
+  // Typing a start time by hand: use the warm-ups mark's day (or the first mark's, or today),
+  // and pick whichever nearby day puts it closest to the first mark, so midnight rehearsals work.
+  $("startTime").addEventListener("change", function () {
+    var v = this.value, st = startEntry();
+    if (!v) {
+      if (st && confirm("Clear the warm-ups start?")) { state.entries = state.entries.filter(function (x) { return x !== st; }); save(); renderAll(); }
+      else renderResult();
+      return;
+    }
+    var p = v.split(":").map(Number);
+    var others = sorted().filter(function (x) { return x !== st; });
+    var ref = st ? st.t : others.length ? others[0].t : Date.now();
+    var d = new Date(ref); d.setHours(p[0] || 0, p[1] || 0, p[2] || 0, 0);
+    var t = d.getTime(), DAY = 86400000;
+    [t - DAY, t + DAY].forEach(function (c) { if (Math.abs(c - ref) < Math.abs(t - ref)) t = c; });
+    if (st) st.t = t; else state.entries.push({ t: t, kind: "start", note: "" });
+    save(); renderAll();
+  });
+
+  // iPhones keep the keyboard open when you tap empty space; close it (which saves).
+  document.addEventListener("pointerdown", function (ev) {
+    var a = document.activeElement;
+    if (!a || !/^(INPUT|TEXTAREA)$/.test(a.tagName) || ev.target === a) return;
+    if (ev.target.closest && ev.target.closest("input, textarea, select, button, a")) return;
+    a.blur();
+  });
+  window.addEventListener("pagehide", save);
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") save(); });
+
+  $("finish").addEventListener("click", function () {
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    openT = null; renderList();
+    var card = $("finishCard"), top = document.querySelector(".top");
+    var smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setTimeout(function () {
+      var y = card.getBoundingClientRect().top + window.scrollY - top.offsetHeight - 12;
+      window.scrollTo({ top: y, behavior: smooth ? "smooth" : "auto" });
+      card.classList.add("done");
+      $("copy").focus({ preventScroll: true });
+    }, 50);
+  });
+  document.addEventListener("keydown", function (ev) {
+    var tag = (ev.target.tagName || "").toLowerCase();
+    if (ev.code === "Space" && !/^(input|button|textarea|select)$/.test(tag)) { ev.preventDefault(); mark(); }
+  });
+
+  var flashTimer;
+  $("copy").addEventListener("click", function () {
+    if (!state.entries.length) return;
+    var btn = this, text = resultEl.textContent;
+    var ok = function () {
+      btn.classList.add("copied"); btn.textContent = "Copied ✓";
+      statusEl.textContent = startEntry() ? "Copied! Paste it into the YouTube description." : "Copied!";
+      clearTimeout(flashTimer);
+      flashTimer = setTimeout(function () { btn.classList.remove("copied"); btn.textContent = "Copy"; }, 2000);
+    };
+    var fallback = function () {
+      var r = document.createRange(); r.selectNodeContents(resultEl);
+      var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      var done = false;
+      try { done = document.execCommand("copy"); } catch (e) {}
+      if (done) ok(); else statusEl.textContent = "The text is highlighted. Copy it the way you normally would.";
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(ok, fallback);
+    else fallback();
+  });
+
+  $("reset").addEventListener("click", function () {
+    if (state.entries.length && !confirm("Start a new rehearsal? This deletes the " + state.entries.length + " marks on this page. Copy them first if you need them.")) return;
+    state.entries = []; openT = null; save(); renderAll();
+  });
+
+  // Keep the screen awake so the phone doesn't lock mid-rehearsal (where supported).
+  function keepAwake() {
+    if (!("wakeLock" in navigator) || document.visibilityState !== "visible") return;
+    navigator.wakeLock.request("screen").catch(function () {});
+  }
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") { keepAwake(); tick(); } });
+
+  try { var o = parseInt(localStorage.getItem(OFFSET_KEY), 10); if (o >= 0 && o <= 60) offset = o; } catch (e) {}
+  function setOffset(n) {
+    offset = Math.max(0, Math.min(60, n));
+    $("offVal").textContent = offset;
+    try { localStorage.setItem(OFFSET_KEY, String(offset)); } catch (e) {}
+    renderResult();
+  }
+  $("offMinus").addEventListener("click", function () { setOffset(offset - 1); });
+  $("offPlus").addEventListener("click", function () { setOffset(offset + 1); });
+  $("offVal").textContent = offset;
+
+  load();
+  // Reopen the newest mark if it still has nothing in it (e.g. the page was refreshed mid-typing).
+  var newest = sorted().pop();
+  if (newest && newest.kind !== "start" && !newest.from && !newest.to && !newest.note) openT = newest.t;
+  tick(); setInterval(tick, 250);
+  keepAwake();
+  renderAll();
+})();
+</script>
+</body>
+</html>
