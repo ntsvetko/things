@@ -65,7 +65,7 @@
   }
   button:focus-visible, input:focus, textarea:focus, select:focus { outline: 3px solid var(--accent); outline-offset: 2px; }
   #mark {
-    width: 100%; min-height: 96px; font-size: 1.6rem; border-color: var(--mark);
+    width: 100%; min-height: 96px; font-size: 1.6rem; border-color: var(--mark); border-radius: 999px;
     background: var(--mark); color: var(--mark-fg); transition: transform 0.08s ease;
   }
   #mark:active { transform: scale(0.97); }
@@ -81,6 +81,9 @@
     padding: 18px; display: flex; flex-direction: column; gap: 10px;
   }
   .card.done { border-color: var(--accent); }
+  details.finish { display: block; padding: 0; }
+  details.finish > summary { cursor: pointer; padding: 14px 18px; font-weight: 700; color: var(--accent); font-size: 1.05rem; }
+  .finish-body { padding: 0 18px 18px; display: flex; flex-direction: column; gap: 10px; }
   .card h2 { font-family: var(--font-head); font-weight: 600; font-size: 1.25rem; margin: 0; }
 
   ol#list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
@@ -190,8 +193,9 @@
     <ol id="list" aria-live="polite"></ol>
   </section>
 
-  <section class="card" id="finishCard">
-    <h2>When rehearsal is over</h2>
+  <details class="card finish" id="finishCard">
+    <summary>When rehearsal is over: copy your list</summary>
+    <div class="finish-body">
     <div class="field">
       <label class="field-label" for="startTime">Times count from (warm-ups start):</label>
       <input id="startTime" type="time" step="1">
@@ -214,7 +218,8 @@
     </div>
     <p class="status" id="status" role="status"></p>
     <p class="hint">Everything is saved on this device as you go, so closing or refreshing the page won't lose your marks. This pilot page keeps its own list, separate from the <a href="live.html">regular live log</a>.</p>
-  </section>
+    </div>
+  </details>
 
   <details class="help">
     <summary>How this version works</summary>
@@ -613,6 +618,7 @@
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     openT = null; renderList();
     var card = $("finishCard"), top = document.querySelector(".top");
+    card.open = true;
     var smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     setTimeout(function () {
       var y = card.getBoundingClientRect().top + window.scrollY - top.offsetHeight - 12;
